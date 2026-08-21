@@ -1,68 +1,49 @@
-const Anthropic = require('@anthropic-ai/sdk');
+// FREE keyword-based classifier — no paid AI API needed.
+const INTENT_KEYWORDS = {
+  GREETING: ['hi', 'hello', 'hey', 'good morning', 'good afternoon', 'good evening', 'how far'],
+  HOURS_QUERY: ['hours', 'open', 'close', 'closing time', 'opening time', 'what time'],
+  DELIVERY_QUERY: ['deliver', 'delivery', 'shipping', 'ship', 'how long', 'send it'],
+  COMPLAINT: ['bad', 'complain', 'complaint', 'not working', 'broken', 'refund', 'disappointed', 'angry', 'wrong item', 'damaged', 'terrible', 'worst'],
+  STOCK_QUERY: ['available', 'stock', 'do you have', 'in stock', 'still have'],
+  PRICE_QUERY: ['price', 'how much', 'cost', 'pricing', 'worth'],
+  ORDER: ['order', 'buy', 'want to purchase', 'i want', 'i need', 'send me', 'get me'],
+};
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+const PRIORITY = ['COMPLAINT', 'ORDER', 'PRICE_QUERY', 'STOCK_QUERY', 'HOURS_QUERY', 'DELIVERY_QUERY', 'GREETING'];
 
-/**
- * Classifies an incoming WhatsApp message and extracts useful entities.
- * Returns: { intent, confidence, item_mentions, quantity, reasoning }
- *
- * intent is one of: PRICE_QUERY, STOCK_QUERY, ORDER, HOURS_QUERY,
- * DELIVERY_QUERY, COMPLAINT, GREETING, OTHER
- */
-async function classifyMessage(messageText, catalog) {
-  const itemNames = catalog.items.map(i => i.name).join(', ');
-
-  const systemPrompt = `You are a message classifier for a business WhatsApp line.
-The business sells: ${itemNames}.
-
-Classify the customer's message into exactly ONE of these intents:
-- PRICE_QUERY: asking how much something costs
-- STOCK_QUERY: asking if something is available/in stock
-- ORDER: wants to buy/order something (may include quantity)
-- HOURS_QUERY: asking about opening hours
-- DELIVERY_QUERY: asking about delivery/shipping
-- COMPLAINT: unhappy, reporting a problem, angry tone
-- GREETING: just saying hello, no real question yet
-- OTHER: anything that doesn't fit above, or is ambiguous
-
-Also extract:
-- item_mentions: array of item names/keywords the customer mentioned (empty array if none)
-- quantity: number if a quantity was mentioned, otherwise null
-- confidence: your confidence in this classification, "high", "medium", or "low"
-
-Respond ONLY with valid JSON, no preamble, no markdown fences:
-{"intent": "...", "item_mentions": [...], "quantity": null, "confidence": "..."}`;
-
-  try {
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5',
-      max_tokens: 300,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: messageText }],
-    });
-
-    const raw = response.content
-      .filter(block => block.type === 'text')
-      .map(block => block.text)
-      .join('')
-      .trim()
-      .replace(/```json|```/g, '')
-      .trim();
-
-    const parsed = JSON.parse(raw);
-    return parsed;
-  } catch (err) {
-    console.error('Classifier error:', err.message);
-    // Fail safe: if classification breaks, escalate rather than guess
-    return {
-      intent: 'OTHER',
-      item_mentions: [],
-      quantity: null,
-      confidence: 'low',
-    };
+function detectIntent(text) {
+  const lower = text.toLowerCase();
+  for (const intent of PRIORITY) {
+    const keywords = INTENT_KEYWORDS[intent];
+    if (keywords.some(kw => lower.includes(kw))) {
+      return intent;
+    }
   }
+  return 'OTHER';
+}
+
+function detectQuantity(text, intent) {
+  if (intent !== 'ORDER') return null;
+  const matches = text.match(/\b(\d{1,2})\b/);
+  return matches ? parseInt(matches[1], 10) : null;
+}
+
+function detectItemMentions(text) {
+  const stripped = text
+    .toLowerCase()
+    .replace(/\b(hi|hello|hey|please|i want|i need|do you have|how much|is|the|a|an|to|order|buy|for)\b/g, '')
+    .replace(/[.,!?]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return stripped ? [stripped] : [];
+}
+
+async function classifyMessage(messageText, catalog) {
+  const intent = detectIntent(messageText);
+  const quantity = detectQuantity(messageText, intent);
+  const item_mentions = detectItemMentions(messageText);
+  const confidence = intent === 'OTHER' ? 'low' : 'medium';
+  return { intent, item_mentions, quantity, confidence };
 }
 
 module.exports = { classifyMessage };
