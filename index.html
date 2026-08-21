@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>WhatsApp AI Agent — Dashboard</title>
+<style>
+  body { font-family: -apple-system, Arial, sans-serif; max-width: 700px; margin: 40px auto; background: #f5f5f5; color: #222; }
+  h1 { font-size: 20px; }
+  .stat-row { display: flex; gap: 16px; margin-bottom: 24px; }
+  .stat { background: #fff; border-radius: 8px; padding: 16px; flex: 1; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+  .stat .num { font-size: 28px; font-weight: bold; color: #128C7E; }
+  .card { background: #fff; border-radius: 8px; padding: 14px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .card .meta { color: #777; font-size: 12px; margin-top: 6px; }
+  .reason { color: #b33; font-weight: 600; font-size: 13px; }
+  section { margin-bottom: 32px; }
+</style>
+</head>
+<body>
+  <h1>📊 WhatsApp AI Agent Dashboard</h1>
+  <div class="stat-row">
+    <div class="stat"><div class="num" id="pendingOrdersCount">–</div>Pending Orders</div>
+    <div class="stat"><div class="num" id="openEscalationsCount">–</div>Needs Attention</div>
+  </div>
+
+  <section>
+    <h2>Pending Orders</h2>
+    <div id="orders"></div>
+  </section>
+
+  <section>
+    <h2>Needs Your Attention</h2>
+    <div id="escalations"></div>
+  </section>
+
+  <script>
+    async function load() {
+      const res = await fetch('/api/summary');
+      const data = await res.json();
+      document.getElementById('pendingOrdersCount').textContent = data.pendingOrdersCount;
+      document.getElementById('openEscalationsCount').textContent = data.openEscalationsCount;
+
+      const ordersDiv = document.getElementById('orders');
+      ordersDiv.innerHTML = data.pendingOrders.length
+        ? data.pendingOrders.map(o => `
+          <div class="card">
+            <strong>${o.id}</strong> — ${o.items.map(i => i.name).join(', ')} x${o.quantity}
+            <div class="meta">From: ${o.customerNumber} • ${new Date(o.createdAt).toLocaleString()}</div>
+          </div>`).join('')
+        : '<p>No pending orders 🎉</p>';
+
+      const escDiv = document.getElementById('escalations');
+      escDiv.innerHTML = data.openEscalations.length
+        ? data.openEscalations.map(e => `
+          <div class="card">
+            <div class="reason">${e.reason}</div>
+            "${e.messageText}"
+            <div class="meta">From: ${e.customerNumber} • ${new Date(e.createdAt).toLocaleString()}</div>
+          </div>`).join('')
+        : '<p>Nothing needs attention right now 🎉</p>';
+    }
+    load();
+    setInterval(load, 15000); // refresh every 15s
+  </script>
+</body>
+</html>

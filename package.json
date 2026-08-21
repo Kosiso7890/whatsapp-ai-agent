@@ -1,0 +1,20 @@
+{
+  "name": "whatsapp-ai-agent",
+  "version": "1.0.0",
+  "description": "AI agent for WhatsApp business message automation - triage, auto-reply, order capture, escalation",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "body-parser": "^1.20.2",
+    "axios": "^1.7.2",
+    "dotenv": "^16.4.5",
+    "@anthropic-ai/sdk": "^0.27.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  }
+}

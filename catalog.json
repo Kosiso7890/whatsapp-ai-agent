@@ -1,0 +1,28 @@
+{
+  "business_name": "Sample Business",
+  "hours": "Monday - Saturday, 8am - 6pm",
+  "delivery_info": "Delivery within Lagos: 1-2 days, ₦2,000. Outside Lagos: 3-5 days via courier.",
+  "items": [
+    {
+      "id": "1",
+      "name": "Generator Alternator (5KVA)",
+      "price": 45000,
+      "stock": 12,
+      "keywords": ["alternator", "generator alternator", "5kva alternator"]
+    },
+    {
+      "id": "2",
+      "name": "Bearing 6205",
+      "price": 3500,
+      "stock": 50,
+      "keywords": ["6205", "bearing 6205", "small bearing"]
+    },
+    {
+      "id": "3",
+      "name": "Generator Spark Plug",
+      "price": 2000,
+      "stock": 0,
+      "keywords": ["spark plug", "plug"]
+    }
+  ]
+}
